@@ -6,8 +6,8 @@
 function features_master_features_api() {
   return array(
     'features_master' => array(
-      'name' => t('Master List'),
-      'default_hook' => 'features_master',
+      'name' => t('Master - Modules and Themes'),
+      'default_hook' => 'features_master_defaults',
       'default_file' => FEATURES_DEFAULTS_INCLUDED,
       'feature_source' => TRUE,
     ),
@@ -31,10 +31,10 @@ function features_master_features_export($data, &$export, $module_name = '') {
   $pipe = array();
   foreach ($data as $component_name) {
     if ($component_name == 'modules') {
-      $export['features']['master']['modules'] = 'modules';
+      $export['features']['features_master']['modules'] = 'modules';
     }
     if ($component_name == 'themes') {
-      $export['features']['master']['themes'] = 'themes';
+      $export['features']['features_master']['themes'] = 'themes';
     }
   }
  return $pipe;
@@ -60,23 +60,22 @@ function _features_master_get_themes($feature_module = NULL) {
  */
 function features_master_features_export_render($module, $data, $export = NULL) {
   $code = array();
-  $code[] = '  $master = array();';
+  $code[] = '  $features_master = array();';
   $code[] = '';
   foreach ($data as $name) {
      if ($name == 'modules') {
       $system_export = features_var_export(_features_master_get_modules(), '  ');
-      $code[] = "  \$master['modules'] = {$system_export};";
+      $code[] = "  \$features_master['modules'] = {$system_export};";
      }
     if ($name == 'themes') {
       $system_export = features_var_export(_features_master_get_themes(), '  ');
-      $code[] = "  \$master['themes'] = {$system_export};";
+      $code[] = "  \$features_master['themes'] = {$system_export};";
     }
   }
-
   $code[] = '';
-  $code[] = '  return $master;';
+  $code[] = '  return $features_master;';
   $code = implode("\n", $code);
-  return array('features_master' => $code);
+  return array('features_master_defaults' => $code);
 }
 
 /**
