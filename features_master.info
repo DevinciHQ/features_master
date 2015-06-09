@@ -1,0 +1,4 @@
+name = Features Master
+description = Export the lists of enabled modules and themes using features.
+package = Development
+core = 7.x

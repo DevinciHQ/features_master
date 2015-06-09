@@ -1,0 +1,154 @@
+<?php
+
+/**
+ * Implements hook_features_api().
+ */
+function features_master_features_api() {
+  return array(
+    'features_master' => array(
+      'name' => t('Master List'),
+      'default_hook' => 'features_master',
+      'default_file' => FEATURES_DEFAULTS_INCLUDED,
+      'feature_source' => TRUE,
+    ),
+  );
+}
+
+/**
+ * Implements hook_features_export_options().
+ */
+function features_master_features_export_options() {
+  return array(
+    'modules' => t('Enabled Modules'),
+    'themes' => t('Enabled Themes'),
+  );
+}
+
+/**
+ * Implements hook_features_export().
+ */
+function features_master_features_export($data, &$export, $module_name = '') {
+  $pipe = array();
+  foreach ($data as $component_name) {
+    if ($component_name == 'modules') {
+      $export['features']['master']['modules'] = 'modules';
+    }
+    if ($component_name == 'themes') {
+      $export['features']['master']['themes'] = 'themes';
+    }
+  }
+ return $pipe;
+}
+
+function _features_master_get_modules($feature_module = NULL) {
+  $modules = module_list();
+   if (!empty($feature_module) && !in_array($feature_module, $modules)) {
+    $modules[$feature_module] = $feature_module;
+  }
+  asort($modules);
+  return $modules;
+}
+
+function _features_master_get_themes($feature_module = NULL) {
+  $themes = list_themes();
+  asort($themes);
+  return $themes;
+}
+
+/**
+ * Implements hook_features_export_render().
+ */
+function features_master_features_export_render($module, $data, $export = NULL) {
+  $code = array();
+  $code[] = '  $master = array();';
+  $code[] = '';
+  foreach ($data as $name) {
+     if ($name == 'modules') {
+      $system_export = features_var_export(_features_master_get_modules(), '  ');
+      $code[] = "  \$master['modules'] = {$system_export};";
+     }
+    if ($name == 'themes') {
+      $system_export = features_var_export(_features_master_get_themes(), '  ');
+      $code[] = "  \$master['themes'] = {$system_export};";
+    }
+  }
+
+  $code[] = '';
+  $code[] = '  return $master;';
+  $code = implode("\n", $code);
+  return array('features_master' => $code);
+}
+
+/**
+ * Implements hook_features_revert().
+ */
+function features_master_features_revert($module) {
+  $data = features_get_default('features_master', $module);
+  if (!empty($data['modules'])) {
+    $current_enabled_modules = module_list();
+    if ($enable_modules = array_diff_key($data['modules'], $current_enabled_modules)) {
+      module_enable($enable_modules);
+    }
+    if ($disable_modules = array_diff_key($current_enabled_modules, $data['modules'])) {
+      module_disable($disable_modules);
+    }
+  }
+}
+
+
+/**
+ * Reset modules back the their default state of enabled and disabled.
+ */
+function features_master_reset_modules() {
+  $new_modules = healthdata_settings_load_modules();
+
+  foreach ($new_modules as $new => $module) {
+    if (!in_array($new, module_list())) {
+      $to_enable[] = $new;
+      print "enable $new";
+    }
+  }
+
+  $new_modules = array_keys($new_modules);
+  foreach (module_list() as $old => $module) {
+    if (!in_array($old, $new_modules)) {
+      $to_disable[] = $old;
+      print "disable $old";
+    }
+  }
+
+  //module_enable($to_enable);
+
+  //module_disable($to_disable);
+}
+
+/**
+ * Save the currently active modules to a file.
+ *
+ * @return int
+ */
+function features_master_save_modules() {
+  $modules_array = module_list();
+  // Sort the list so it's easier to diff it.
+  asort($modules_array);
+  $output = implode($modules_array, "\n");
+  $filename = drupal_get_path('module', 'healthdata_settings') . '/healthdata_settings.enabled_modules.inc';
+  //drupal_alter();
+  return file_put_contents($filename , $output);
+}
+
+/**
+ * Load the modules that are to be enabled.
+ *
+ * @return array
+ */
+function features_master_load_modules() {
+  $filename = drupal_get_path('module', 'healthdata_settings') . '/healthdata_settings.enabled_modules.inc';
+  $input = file_get_contents($filename);
+  $modules_array = array();
+  if (!empty($input)) {
+    $modules_array = explode("\n", $input);
+  }
+  //drupal_alter();
+  return $modules_array;
+}
