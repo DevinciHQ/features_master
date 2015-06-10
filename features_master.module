@@ -23,7 +23,8 @@ function features_master_features_api() {
 function features_master_features_export_options() {
   return array(
     'modules' => t('Enabled Modules'),
-    'themes' => t('Enabled Themes'),
+    // TODO: We need to get this working for themes.
+    //'themes' => t('Enabled Themes'),
   );
 }
 
@@ -55,6 +56,8 @@ function _features_master_get_modules($feature_module = NULL) {
 
 function _features_master_get_themes($feature_module = NULL) {
   $themes = list_themes();
+  //TODO: list_themes() actually retuns a lot of metadata, we shouldn't be storing.
+  // Blocker: This blocks getting themes working.
   asort($themes);
   // TODO: ADD OR REMOVE DEFAULTS HERE
   return $themes;
@@ -93,14 +96,33 @@ function features_master_features_revert($module) {
     $current_enabled_modules = module_list();
     if ($enable_modules = array_diff_key($data['modules'], $current_enabled_modules)) {
       foreach ($enable_modules as $module) {
-        module_enable($module);
+        // TODO: We could speed the process up by checking the database each time to see if a module was already enabled,
+        // perhaps as a dependency of another module just installed.
+        try {
+          $success = module_enable(array($module));
+        } catch (Exception $e) {
+          $success = false;
+          drupal_set_message(t('FEATURES MASTER: Enabling @module or one of it\'s dependencies caused an exception: @ex', array('@module' => $module, '@ex' => $e->getMessage())));
+        }
+        if (!$success) {
+          // Consider these modules as not enabled;
+          unset($enable_modules[$module]);
+          drupal_set_message(t('FEATURES MASTER: @module has unmet dependencies or some other issue and could not be enabled', array('@module' => $module)));
+        }
       }
-      module_enable($enable_modules);
+      $modules_string = implode(" ,", $enable_modules);
+      drupal_set_message(t('FEATURES MASTER: The following modules were enabled successfully: @modules_string', array('@modules_string' => $modules_string)));
+
     }
     if ($disable_modules = array_diff_key($current_enabled_modules, $data['modules'])) {
       foreach ($disable_modules as $module) {
-        module_disable($module);
+        // TODO: We don't get any return value from module_disable unfortunately. We should add a try catch here as well.
+        module_disable(array($module));
       }
+      $modules_string = implode(" ,", $disable_modules);
+      drupal_set_message(t('FEATURES MASTER: The following modules were disabled successfully: @modules_string', array('@modules_string' => $modules_string)));
     }
+
+    //TODO: Implement the same thing for themes.
   }
 }
