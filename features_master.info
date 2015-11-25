@@ -1,4 +1,5 @@
 name = Features Master
 description = Export the lists of enabled modules and themes using features.
 package = Development
+dependencies[] = features
 core = 7.x
