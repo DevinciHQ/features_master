@@ -40,8 +40,7 @@ function features_master_features_export_options() {
   return array(
     'modules' => t('Enabled Modules'),
     'permissions' => t('All permissions'),
-    // TODO: We need to get this working for themes.
-    //'themes' => t('Enabled Themes'),
+    'themes' => t('Enabled Themes'),
   );
 }
 
@@ -75,12 +74,19 @@ function _features_master_get_modules($feature_module = NULL) {
 }
 
 function _features_master_get_themes($feature_module = NULL) {
+
   $themes = list_themes();
-  //TODO: list_themes() actually retuns a lot of metadata, we shouldn't be storing.
-  // Blocker: This blocks getting themes working.
-  asort($themes);
-  // TODO: ADD OR REMOVE DEFAULTS HERE
-  return $themes;
+
+  $reduced_themes = array();
+  foreach($themes as $theme){
+    if($theme->status) {
+      // We only want the theme name
+      $reduced_themes[$theme->name] = $theme->name;
+    }
+  }
+  asort($reduced_themes);
+
+  return $reduced_themes;
 }
 
 /**
@@ -236,6 +242,7 @@ function features_master_features_revert($module) {
     // because there is only ONE component so we do all of them.
     _features_master_features_revert_modules($module, $data);
     _features_master_features_revert_permissions($module, $data);
+    _features_master_features_revert_themes($module, $data);
   }
 }
 
@@ -268,6 +275,32 @@ function _features_master_features_revert_permissions($module, $data) {
       }
     }
     user_role_change_permissions($rid, $write_perms);
+  }
+}
+
+/**
+ * Revert themes.
+ *
+ * @param $module
+ * @param $data
+ */
+function _features_master_features_revert_themes($module, $data) {
+
+  $current_enabled_themes = _features_master_get_themes();
+
+  // Enable the defined themes
+  if ($enable_themes = array_diff_key($data['themes'], $current_enabled_themes)) {
+
+    theme_enable(array_values($enable_themes));
+
+    $themes_string = implode(", ", $enable_themes);
+    drupal_set_message(t('FEATURES MASTER: The following themes were enabled successfully: @themes', array('@themes' => $themes_string)));
+  }
+  if ($disable_themes = array_diff_key($current_enabled_themes, $data['themes'])) {
+    theme_disable(array_values($disable_themes));
+
+    $themes_string = implode(", ", $disable_themes);
+    drupal_set_message(t('FEATURES MASTER: The following themes were disabled successfully: @themes', array('@themes' => $themes_string)));
   }
 }
 
@@ -314,6 +347,8 @@ function _features_master_features_revert_modules($module, $data) {
     //TODO: Implement the same thing for themes.
   }
 }
+
+
 
 /**
  * Alter the list of modules using variables.
