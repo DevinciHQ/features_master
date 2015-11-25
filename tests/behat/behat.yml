@@ -1,0 +1,45 @@
+# Default profile.
+# Common settings for all profiles
+default:
+  suites:
+    default:
+      filters:
+        tags: "~@wip"
+      contexts:
+        - FeatureContext
+        - Drupal\DrupalExtension\Context\DrupalContext
+        - Drupal\DrupalExtension\Context\MinkContext
+        - Drupal\DrupalExtension\Context\DrushContext
+  extensions:
+    Behat\MinkExtension:
+      goutte: ~
+      selenium2: ~
+      # Use goutte (basic PHP browser, super fast) as the default driver.
+      default_session: selenium2
+      # For real browser testing and tests requiring JS use selenium2 driver.
+      # Tag features/scenarious with @javascript to use the selenium2 driver.
+      javascript_session: selenium2
+    Drupal\DrupalExtension:
+      blackbox: ~
+      drush: ~
+      # API driver [drupal|drush]
+      api_driver: "drupal"
+
+# Docker profile.
+# For use inside the CLI container in Drude.
+docker:
+  extensions:
+    Behat\MinkExtension:
+      # URL of the site when accessed inside Drude.
+      base_url: http://web
+      selenium2:
+        wd_host: http://browser:4444/wd/hub
+      # Stick with chrome by default. It's 2x faster than firefox or phantomjs (your results may vary).
+      browser_name: chrome
+    Drupal\DrupalExtension:
+      drupal:
+        # Site docroot inside Drude.
+        drupal_root: /var/www/docroot
+      drush:
+        # Site docroot inside Drude.
+        root: /var/www/docroot
